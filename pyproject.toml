@@ -1,0 +1,14 @@
+[project]
+name = "feature-flags"
+version = "0.1.0"
+description = "A lightweight feature flag system with per-customer and per-user support"
+authors = [{ name = "Joe Southin", email = "joe.southin@gmail.com" }]
+requires-python = ">=3.7"
+readme = "README.md"
+
+[tool.setuptools]
+packages = ["src"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

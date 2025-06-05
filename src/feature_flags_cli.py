@@ -3,6 +3,7 @@ from feature_flag_service import FeatureFlagService, SQLiteFeatureFlagStore
 
 def main():
     parser = argparse.ArgumentParser(description="Feature Flag Service CLI")
+    parser.add_argument("--db-path", default="feature_flags.db", help="Path to the SQLite database file")
     subparsers = parser.add_subparsers(dest="command")
 
     # Add feature
@@ -67,7 +68,7 @@ def main():
     subparsers.add_parser("list-all-customers")
 
     args = parser.parse_args()
-    store = SQLiteFeatureFlagStore()
+    store = SQLiteFeatureFlagStore(db_path=args.db_path)
     service = FeatureFlagService(store)
 
     if args.command == "add-feature":

@@ -52,5 +52,53 @@ class TestFeatureFlagService(unittest.TestCase):
         self.assertIn("new_feature", self.service.list_features_for_customer(1))
         self.assertNotIn("old_feature", self.service.list_features_for_customer(1))
 
+    def test_user_level_feature_flags(self):
+        self.service.add_feature("user_feature")
+        self.service.set_flag("user_feature", customer_id=1, user_id=100, is_enabled=True)
+        self.service.set_flag("user_feature", customer_id=1, user_id=101, is_enabled=False)
+        self.assertIn(1, self.service.list_customers_with_feature("user_feature"))
+        self.service.remove_user(100)
+        self.assertIn(1, self.service.list_customers_with_feature("user_feature"))
+
+    def test_list_all_features(self):
+        self.service.add_feature("feature1")
+        self.service.add_feature("feature2")
+        features = self.service.list_all_features()
+        self.assertIn("feature1", features)
+        self.assertIn("feature2", features)
+
+    def test_list_all_customers(self):
+        customers = self.service.list_all_customers()
+        self.assertIn(1, customers)
+        self.assertIn(2, customers)
+        self.service.remove_customer(1)
+        customers = self.service.list_all_customers()
+        self.assertNotIn(1, customers)
+        self.assertIn(2, customers)
+
+    def test_describe_all_features(self):
+        self.service.add_feature("feature1", default_enabled=True)
+        self.service.add_feature("feature2", default_enabled=False)
+        self.service.set_flag("feature2", customer_id=1, user_id=None, is_enabled=True)
+        
+        descriptions = self.service.describe_all_features()
+        feature1_desc = next(d for d in descriptions if d["feature_name"] == "feature1")
+        feature2_desc = next(d for d in descriptions if d["feature_name"] == "feature2")
+        
+        self.assertTrue(feature1_desc["global_enabled"])
+        self.assertFalse(feature2_desc["global_enabled"])
+        self.assertIn(1, feature2_desc["explicitly_enabled_customers"])
+
+    def test_invalid_flag_setting(self):
+        with self.assertRaises(ValueError):
+            self.service.set_flag("feature", customer_id=None, user_id=None, is_enabled=True)
+
+    def test_feature_default_state(self):
+        self.service.add_feature("enabled_feature", default_enabled=True)
+        self.service.add_feature("disabled_feature", default_enabled=False)
+        
+        self.assertIn(1, self.service.list_customers_with_feature("enabled_feature"))
+        self.assertNotIn(1, self.service.list_customers_with_feature("disabled_feature"))
+
 if __name__ == '__main__':
     unittest.main()

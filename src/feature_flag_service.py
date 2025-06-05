@@ -127,22 +127,45 @@ class SQLiteFeatureFlagStore(FeatureFlagStore):
             self.conn.execute("DELETE FROM feature_flags WHERE user_id = ?", (user_id,))
 
     def list_customers_with_feature(self, feature_name: str) -> List[int]:
+        # DEBUG: Print all feature_flags for this feature
+        cursor = self.conn.execute("SELECT * FROM feature_flags WHERE feature_name = ?", (feature_name,))
+        print('DEBUG feature_flags:', cursor.fetchall())
         cursor = self.conn.execute("SELECT is_enabled FROM global_feature_flags WHERE feature_name = ?", (feature_name,))
         row = cursor.fetchone()
         if row and row[0]:
+            # Globally enabled: all customers except those blacklisted at customer level
             cursor = self.conn.execute("""
-                SELECT customer_id FROM customers
+                SELECT DISTINCT customer_id FROM customers
                 WHERE customer_id NOT IN (
                     SELECT customer_id FROM feature_flags
-                    WHERE feature_name = ? AND is_enabled = 0 AND customer_id IS NOT NULL
+                    WHERE feature_name = ? AND is_enabled = 0 AND customer_id IS NOT NULL AND user_id IS NULL
                 )
             """, (feature_name,))
+            customers = {row[0] for row in cursor.fetchall() if row[0] is not None}
+            print('DEBUG customers (global enabled):', customers)
         else:
             cursor = self.conn.execute("""
                 SELECT DISTINCT customer_id FROM feature_flags
                 WHERE feature_name = ? AND is_enabled = 1 AND customer_id IS NOT NULL
             """, (feature_name,))
-        return [row[0] for row in cursor.fetchall()]
+            customers = {row[0] for row in cursor.fetchall() if row[0] is not None}
+            print('DEBUG customers (customer-level enable):', customers)
+            cursor = self.conn.execute("""
+                SELECT DISTINCT customer_id FROM feature_flags
+                WHERE feature_name = ? AND is_enabled = 1 AND user_id IS NOT NULL
+            """, (feature_name,))
+            user_enabled_customers = {row[0] for row in cursor.fetchall() if row[0] is not None}
+            print('DEBUG user_enabled_customers:', user_enabled_customers)
+            customers.update(user_enabled_customers)
+            cursor = self.conn.execute("""
+                SELECT DISTINCT customer_id FROM feature_flags
+                WHERE feature_name = ? AND is_enabled = 0 AND customer_id IS NOT NULL
+            """, (feature_name,))
+            blacklisted = {row[0] for row in cursor.fetchall() if row[0] is not None}
+            print('DEBUG blacklisted:', blacklisted)
+            customers.difference_update(blacklisted)
+        print('DEBUG final customers:', customers)
+        return list(customers)
 
     def list_customers_with_feature_explicitly_enabled(self, feature_name: str) -> List[int]:
         cursor = self.conn.execute("""

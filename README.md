@@ -27,21 +27,47 @@ python feature_flag_service.py
 ```
 
 ### Running via CLI
-Use the `cli.py` script for command-line access.
+Use the `feature_flags_cli.py` script for command-line access.
 
 #### Examples
 ```bash
-python cli.py add-feature dashboard --default-enabled
-python cli.py add-customer 101
-python cli.py set-flag dashboard --customer-id 101 --enabled
-python cli.py list-features 101
-python cli.py list-customers dashboard
-python cli.py list-customers-enabled dashboard
-python cli.py list-customers-disabled dashboard
+# Add a feature (globally enabled by default)
+python feature_flags_cli.py add-feature dashboard --default-enabled
+
+# Add a customer
+python feature_flags_cli.py add-customer 101
+
+# Set a flag for a customer
+python feature_flags_cli.py set-flag dashboard --customer-id 101 --enabled
+
+# List features for a customer
+python feature_flags_cli.py list-features 101
+
+# List customers with a feature
+python feature_flags_cli.py list-customers dashboard
+
+# List customers with a feature explicitly enabled
+python feature_flags_cli.py list-customers-enabled dashboard
+
+# List customers with a feature explicitly disabled
+python feature_flags_cli.py list-customers-disabled dashboard
+
+# List all features
+python feature_flags_cli.py list-all-features
+
+# Describe all features
+python feature_flags_cli.py describe-all-features
+
+# List all customers
+python feature_flags_cli.py list-all-customers
 ```
 
 ### Database
-All data is persisted in a local SQLite database file named `feature_flags.db`. You can delete this file to reset all data.
+All data is persisted in a local SQLite database file named `feature_flags.db`. You can delete this file to reset all data. For testing, you can specify a different database file using the `--db-path` argument:
+
+```bash
+python feature_flags_cli.py --db-path test_db.db add-feature test_feature
+```
 
 ## API Overview
 
